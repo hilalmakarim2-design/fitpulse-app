@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FitPulse - Workout Journal & Fitness Tracker</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#e6fdf4',
+              100: '#c1fbe2',
+              400: '#22c55e',
+              500: '#10b981',
+              600: '#059669',
+              dark: '#0f172a',
+              card: '#1e293b',
+              accent: '#00f2fe'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #090d16;
+      color: #f1f5f9;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    .gradient-border {
+      position: relative;
+      border-radius: 1rem;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(0, 242, 254, 0.1));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body class="bg-[#090d16] text-slate-100 min-h-screen flex flex-col antialiased">
+
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <div id="auth-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 sm:p-8 shadow-2xl relative">
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl shadow-lg shadow-emerald-500/10">
+          <i class="fa-solid fa-bolt"></i>
+        </div>
+        <h2 class="text-2xl font-extrabold text-white">Selamat Datang di FitPulse</h2>
+        <p class="text-slate-400 text-sm mt-1">Catat workout, raih goals & pantau progres fisikmu!</p>
+      </div>
+
+      <!-- Auth Tabs -->
+      <div class="flex border-b border-slate-800 mb-6">
+        <button id="tab-login" onclick="window.switchAuthTab('login')" class="flex-1 py-2 text-center font-medium text-emerald-400 border-b-2 border-emerald-400 transition-all">Masuk</button>
+        <button id="tab-register" onclick="window.switchAuthTab('register')" class="flex-1 py-2 text-center font-medium text-slate-400 border-b-2 border-transparent transition-all">Daftar</button>
+      </div>
+
+      <!-- Auth Form -->
+      <form id="auth-form" onsubmit="window.handleAuthSubmit(event)">
+        <div id="name-field" class="hidden mb-4">
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Nama Lengkap</label>
+          <div class="relative">
+            <i class="fa-solid fa-user absolute left-3 top-3.5 text-slate-500"></i>
+            <input type="text" id="auth-name" placeholder="John Doe" class="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl py-2.5 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Email</label>
+          <div class="relative">
+            <i class="fa-solid fa-envelope absolute left-3 top-3.5 text-slate-500"></i>
+            <input type="email" id="auth-email" required placeholder="nama@email.com" class="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl py-2.5 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+          </div>
+        </div>
+
+        <div class="mb-6">
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Kata Sandi</label>
+          <div class="relative">
+            <i class="fa-solid fa-lock absolute left-3 top-3.5 text-slate-500"></i>
+            <input type="password" id="auth-password" required placeholder="••••••••" class="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl py-2.5 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+          </div>
+        </div>
+
+        <button type="submit" id="auth-submit-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-xl transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
+          <span>Masuk</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+
+      <div class="relative flex py-5 items-center">
+        <div class="flex-grow border-t border-slate-800"></div>
+        <span class="flex-shrink mx-4 text-slate-500 text-xs uppercase font-medium">Atau</span>
+        <div class="flex-grow border-t border-slate-800"></div>
+      </div>
+
+      <button onclick="window.loginAsGuest()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2 text-sm">
+        <i class="fa-solid fa-user-secret"></i>
+        <span>Lanjutkan sebagai Guest (Tamu)</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="app-container" class="hidden flex-1 flex flex-col md:flex-row min-h-screen">
+    
+    <!-- Sidebar / Navigation -->
+    <aside class="w-full md:w-64 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 flex-shrink-0 flex flex-col justify-between">
+      <div>
+        <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 rounded-xl flex items-center justify-center text-xl font-bold shadow-md shadow-emerald-500/10">
+              <i class="fa-solid fa-dumbbell"></i>
+            </div>
+            <div>
+              <h1 class="font-bold text-white leading-none text-lg">FitPulse</h1>
+              <span class="text-[11px] text-emerald-400 font-medium">Workout & Progress</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Info Card -->
+        <div class="p-4 mx-3 my-3 bg-slate-800/60 rounded-xl border border-slate-700/50 flex items-center justify-between">
+          <div class="flex items-center gap-3 overflow-hidden cursor-pointer" onclick="window.openProfileModal()">
+            <div id="desktop-user-avatar" class="w-9 h-9 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <div class="truncate">
+              <div id="desktop-user-name" class="text-sm font-semibold text-white truncate">Member</div>
+              <div id="desktop-user-role" class="text-xs text-slate-400 truncate">Pro Fitness</div>
+            </div>
+          </div>
+          <button onclick="window.openProfileModal()" class="text-slate-400 hover:text-emerald-400 p-1.5 transition-colors" title="Edit Profil">
+            <i class="fa-solid fa-user-gear"></i>
+          </button>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="p-3 space-y-1">
+          <button onclick="window.switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+            <i class="fa-solid fa-chart-pie w-5"></i>
+            <span>Dashboard</span>
+          </button>
+          <button onclick="window.switchTab('workouts')" id="nav-workouts" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-400 hover:text-white hover:bg-slate-800/60">
+            <i class="fa-solid fa-book-open w-5"></i>
+            <span>Jurnal Workout</span>
+          </button>
+          <button onclick="window.switchTab('goals')" id="nav-goals" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-400 hover:text-white hover:bg-slate-800/60">
+            <i class="fa-solid fa-bullseye w-5"></i>
+            <span>Goals & Target</span>
+          </button>
+          <button onclick="window.switchTab('weight')" id="nav-weight" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-400 hover:text-white hover:bg-slate-800/60">
+            <i class="fa-solid fa-weight-scale w-5"></i>
+            <span>Berat Badan</span>
+          </button>
+          <button onclick="window.switchTab('backup')" id="nav-backup" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-400 hover:text-white hover:bg-slate-800/60">
+            <i class="fa-solid fa-database w-5"></i>
+            <span>Backup & Impor</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Logout Footer -->
+      <div class="p-3 border-t border-slate-800">
+        <button onclick="window.handleLogout()" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-medium text-sm text-red-400 hover:bg-red-500/10 transition-all">
+          <i class="fa-solid fa-right-from-bracket w-5"></i>
+          <span>Keluar Akun</span>
+        </button>
+      </div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-8 space-y-6">
+      
+      <!-- Top Mobile Bar -->
+      <div class="md:hidden flex items-center justify-between pb-4 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-400">Status:</span>
+          <span id="mobile-user-status" class="text-xs text-emerald-400 font-semibold">Logged In</span>
+        </div>
+        <button onclick="window.handleLogout()" class="text-xs text-red-400 hover:text-red-300 font-medium px-3 py-1.5 bg-red-500/10 rounded-lg">
+          <i class="fa-solid fa-right-from-bracket mr-1"></i> Keluar
+        </button>
+      </div>
+
+      <!-- DASHBOARD SECTION -->
+      <section id="section-dashboard" class="space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-extrabold text-white">Ringkasan Performa</h2>
+            <p class="text-slate-400 text-sm">Pantau statistik dan pencapaian fitness Anda minggu ini.</p>
+          </div>
+          <button onclick="window.openWorkoutModal()" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all text-sm">
+            <i class="fa-solid fa-plus"></i>
+            <span>Tambah Workout</span>
+          </button>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="gradient-border p-4 sm:p-5">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase">Total Workout</span>
+              <i class="fa-solid fa-dumbbell text-emerald-400"></i>
+            </div>
+            <div id="stat-total-workouts" class="text-2xl sm:text-3xl font-extrabold text-white">0</div>
+            <span class="text-[11px] text-emerald-400 font-medium mt-1 inline-block">Sesi Terlaris</span>
+          </div>
+
+          <div class="gradient-border p-4 sm:p-5">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase">Total Durasi</span>
+              <i class="fa-solid fa-clock text-emerald-400"></i>
+            </div>
+            <div id="stat-total-duration" class="text-2xl sm:text-3xl font-extrabold text-white">0m</div>
+            <span class="text-[11px] text-emerald-400 font-medium mt-1 inline-block">Waktu Aktif</span>
+          </div>
+
+          <div class="gradient-border p-4 sm:p-5">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase">Est. Kalori</span>
+              <i class="fa-solid fa-fire text-amber-400"></i>
+            </div>
+            <div id="stat-total-calories" class="text-2xl sm:text-3xl font-extrabold text-white">0</div>
+            <span class="text-[11px] text-amber-400 font-medium mt-1 inline-block">Kcal Terbakar</span>
+          </div>
+
+          <div class="gradient-border p-4 sm:p-5">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase">Goals Tercapai</span>
+              <i class="fa-solid fa-trophy text-emerald-400"></i>
+            </div>
+            <div id="stat-completed-goals" class="text-2xl sm:text-3xl font-extrabold text-white">0/0</div>
+            <span class="text-[11px] text-emerald-400 font-medium mt-1 inline-block">Target Aktif</span>
+          </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+            <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+              <i class="fa-solid fa-chart-line text-emerald-400"></i>
+              <span>Tren Durasi & Kalori</span>
+            </h3>
+            <div class="h-64 relative">
+              <canvas id="chart-workout-activity"></canvas>
+            </div>
+          </div>
+
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+            <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+              <i class="fa-solid fa-chart-pie text-emerald-400"></i>
+              <span>Kategori Latihan</span>
+            </h3>
+            <div class="h-64 relative flex items-center justify-center">
+              <canvas id="chart-workout-category"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Workouts Overview -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-bold text-white">Workout Terakhir</h3>
+            <button onclick="window.switchTab('workouts')" class="text-xs text-emerald-400 hover:underline">Lihat Semua</button>
+          </div>
+          <div id="recent-workout-list" class="space-y-3">
+            <div class="text-center py-8 text-slate-500 text-sm">Belum ada catatan workout. Mulai catat latihanmu!</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="section-workouts" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-extrabold text-white">Jurnal Workout</h2>
+            <p class="text-slate-400 text-sm">Riwayat detail semua sesi dan angkatan latihan kamu.</p>
+          </div>
+          <button onclick="window.openWorkoutModal()" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-2.5 rounded-xl shadow-lg transition-all text-sm">
+            <i class="fa-solid fa-plus"></i>
+            <span>Tambah Catatan Baru</span>
+          </button>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row gap-4">
+          <div class="flex-1">
+            <input type="text" id="workout-search" oninput="window.renderWorkoutLogs()" placeholder="Cari nama latihan..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+          </div>
+          <select id="workout-filter-category" onchange="window.renderWorkoutLogs()" class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+            <option value="all">Semua Kategori</option>
+            <option value="Strength">Strength (Beban)</option>
+            <option value="Cardio">Cardio</option>
+            <option value="Flexibility">Flexibility / Yoga</option>
+            <option value="Other">Lainnya</option>
+          </select>
+        </div>
+
+        <!-- Workout Logs Container -->
+        <div id="workout-logs-container" class="space-y-4">
+          <!-- Filled dynamically -->
+        </div>
+      </section>
+
+      <section id="section-goals" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-extrabold text-white">Target & Goals</h2>
+            <p class="text-slate-400 text-sm">Tetapkan pencapaian fisik dan pantau kemajuannya.</p>
+          </div>
+          <button onclick="window.openGoalModal()" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-2.5 rounded-xl shadow-lg transition-all text-sm">
+            <i class="fa-solid fa-plus"></i>
+            <span>Buat Target Baru</span>
+          </button>
+        </div>
+
+        <!-- Goals Grid -->
+        <div id="goals-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Filled dynamically -->
+        </div>
+      </section>
+
+      <section id="section-weight" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-extrabold text-white">Pelacak Berat Badan</h2>
+            <p class="text-slate-400 text-sm">Pantau perubahan berat badan secara berkala.</p>
+          </div>
+          <button onclick="window.openWeightModal()" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-2.5 rounded-xl shadow-lg transition-all text-sm">
+            <i class="fa-solid fa-plus"></i>
+            <span>Catat Berat Badan</span>
+          </button>
+        </div>
+
+        <!-- Weight Chart Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+          <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-chart-line text-cyan-400"></i>
+            <span>Grafik Progres Berat Badan</span>
+          </h3>
+          <div class="h-64 relative">
+            <canvas id="chart-weight-history"></canvas>
+          </div>
+        </div>
+
+        <!-- Weight History Table -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl overflow-x-auto">
+          <h3 class="text-base font-bold text-white mb-4">Riwayat Penimbangan</h3>
+          <table class="w-full text-left border-collapse min-w-[500px]">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-400 text-xs uppercase">
+                <th class="p-3.5 font-semibold">Tanggal</th>
+                <th class="p-3.5 font-semibold">Berat Badan</th>
+                <th class="p-3.5 font-semibold">Catatan</th>
+                <th class="p-3.5 font-semibold text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="weight-history-tbody">
+              <!-- Filled dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- BACKUP & IMPORT SECTION -->
+      <section id="section-backup" class="hidden space-y-6">
+        <div>
+          <h2 class="text-2xl font-extrabold text-white">Backup & Impor Data</h2>
+          <p class="text-slate-400 text-sm">Simpan cadangan data progres kamu ke file JSON atau pulihkan data dari backup sebelumnya.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Export / Backup Card -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between space-y-4">
+            <div>
+              <div class="w-12 h-12 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl flex items-center justify-center text-xl font-bold mb-4">
+                <i class="fa-solid fa-download"></i>
+              </div>
+              <h3 class="text-lg font-bold text-white mb-1">Ekspor / Backup Data JSON</h3>
+              <p class="text-slate-400 text-sm">Unduh seluruh catatan workout, target, progres berat badan, dan profil ke dalam file `.json` lokal.</p>
+            </div>
+            <button onclick="window.exportBackupJSON()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 px-4 rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 text-sm">
+              <i class="fa-solid fa-file-arrow-down"></i>
+              <span>Unduh Backup JSON</span>
+            </button>
+          </div>
+
+          <!-- Import / Restore Card -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between space-y-4">
+            <div>
+              <div class="w-12 h-12 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-xl flex items-center justify-center text-xl font-bold mb-4">
+                <i class="fa-solid fa-upload"></i>
+              </div>
+              <h3 class="text-lg font-bold text-white mb-1">Impor / Pulihkan Data JSON</h3>
+              <p class="text-slate-400 text-sm">Pilih file backup `.json` untuk mengembalikan catatan dan progres latihan kamu.</p>
+            </div>
+            <div>
+              <input type="file" id="import-json-file" accept=".json" class="hidden" onchange="window.importBackupJSON(event)">
+              <button onclick="document.getElementById('import-json-file').click()" class="w-full bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-sm">
+                <i class="fa-solid fa-file-arrow-up"></i>
+                <span>Pilih File Backup JSON</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  
+  <!-- Workout Form Modal -->
+  <div id="workout-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-xl font-bold text-white" id="workout-modal-title">Tambah Catatan Workout</h3>
+        <button onclick="window.closeWorkoutModal()" class="text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="workout-form" onsubmit="window.handleWorkoutSubmit(event)" class="space-y-4">
+        <input type="hidden" id="workout-id">
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Nama Latihan</label>
+          <input type="text" id="workout-title" required placeholder="Misal: Bench Press / Lari Pagi" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 text-sm">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Kategori</label>
+            <select id="workout-category" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 text-sm">
+              <option value="Strength">Strength (Beban)</option>
+              <option value="Cardio">Cardio</option>
+              <option value="Flexibility">Flexibility / Yoga</option>
+              <option value="Other">Lainnya</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Tanggal</label>
+            <input type="date" id="workout-date" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 text-sm">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Set</label>
+            <input type="number" id="workout-sets" min="1" value="3" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Reps</label>
+            <input type="number" id="workout-reps" min="1" value="10" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Beban (Kg)</label>
+            <input type="number" id="workout-weight" min="0" step="0.5" value="0" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 text-sm">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Durasi (Menit)</label>
+            <input type="number" id="workout-duration" required min="1" value="45" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Est. Kalori (Kcal)</label>
+            <input type="number" id="workout-calories" min="0" value="200" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 text-sm">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Perasaan / Mood</label>
+          <select id="workout-feeling" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 text-sm">
+            <option value="🔥 Kuat / Maksimal">🔥 Kuat / Maksimal</option>
+            <option value="👍 Cukup Baik">👍 Cukup Baik</option>
+            <option value="⚡ Bertenaga">⚡ Bertenaga</option>
+            <option value="😴 Agak Lelah">😴 Agak Lelah</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Catatan Tambahan</label>
+          <textarea id="workout-notes" rows="2" placeholder="Form angkatan, sensasi pump, dll..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-emerald-500 text-sm"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button" onclick="window.closeWorkoutModal()" class="px-4 py-2 rounded-xl text-slate-400 hover:bg-slate-800 text-sm font-medium">Batal</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold shadow-md shadow-emerald-500/20 text-sm">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Goal Form Modal -->
+  <div id="goal-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-xl font-bold text-white">Target Fitness Baru</h3>
+        <button onclick="window.closeGoalModal()" class="text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="goal-form" onsubmit="window.handleGoalSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Judul Target</label>
+          <input type="text" id="goal-title" required placeholder="Misal: Bench Press 80kg / Lari 10km" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 text-sm">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Target Angka</label>
+            <input type="number" id="goal-target" required min="1" value="10" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Satuan</label>
+            <input type="text" id="goal-unit" required placeholder="Kg / Sesi / Km" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 text-sm">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Batas Waktu (Deadline)</label>
+          <input type="date" id="goal-deadline" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 text-sm">
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button" onclick="window.closeGoalModal()" class="px-4 py-2 rounded-xl text-slate-400 hover:bg-slate-800 text-sm font-medium">Batal</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold shadow-md shadow-emerald-500/20 text-sm">Simpan Target</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Weight Form Modal -->
+  <div id="weight-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-xl font-bold text-white">Catat Berat Badan</h3>
+        <button onclick="window.closeWeightModal()" class="text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="weight-form" onsubmit="window.handleWeightSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Berat Badan (Kg)</label>
+          <input type="number" id="weight-value" required step="0.1" min="20" placeholder="70.5" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 text-sm">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Tanggal</label>
+          <input type="date" id="weight-date" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 text-sm">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Catatan Singkat</label>
+          <input type="text" id="weight-notes" placeholder="Misal: Penimbangan pagi hari" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 text-sm">
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button" onclick="window.closeWeightModal()" class="px-4 py-2 rounded-xl text-slate-400 hover:bg-slate-800 text-sm font-medium">Batal</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold shadow-md shadow-emerald-500/20 text-sm">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Profile Modal -->
+  <div id="profile-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-xl font-bold text-white">Pengaturan Profil</h3>
+        <button onclick="window.closeProfileModal()" class="text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="profile-form" onsubmit="window.handleProfileSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Nama Lengkap</label>
+          <input type="text" id="profile-name-input" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 text-sm">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Fokus / Target Utama</label>
+          <input type="text" id="profile-role-input" placeholder="Misal: Hypertrophy / Muscle Gain" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500 text-sm">
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button" onclick="window.closeProfileModal()" class="px-4 py-2 rounded-xl text-slate-400 hover:bg-slate-800 text-sm font-medium">Batal</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold shadow-md shadow-emerald-500/20 text-sm">Simpan Profil</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    window.AppState = {
+      currentUser: null,
+      authMode: 'login',
+      workouts: [],
+      goals: [],
+      weights: [],
+      charts: {}
+    };
+
+    // Firebase Config Initialization
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'fitpulse-app';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+      apiKey: "dummy-key",
+      authDomain: "fitpulse.firebaseapp.com",
+      projectId: "fitpulse",
+      storageBucket: "fitpulse.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "1:123456789:web:abcdef"
+    };
+
+    let app, auth, db;
+    let isFirebaseReady = false;
+    let unsubscribeFirestore = [];
+
+    try {
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getFirestore(app);
+      isFirebaseReady = true;
+
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          const userObj = {
+            uid: user.uid,
+            email: user.email || 'guest@fitpulse.app',
+            displayName: user.displayName || (user.isAnonymous ? 'Tamu Fitness' : (user.email ? user.email.split('@')[0] : 'Member')),
+            role: user.isAnonymous ? 'Guest Member' : 'Pro Fitness'
+          };
+          window.AppState.currentUser = userObj;
+          localStorage.setItem('fitpulse_user', JSON.stringify(userObj));
+          onUserLoggedIn(userObj);
+        } else {
+          window.AppState.currentUser = null;
+          document.getElementById('app-container').classList.add('hidden');
+          document.getElementById('auth-modal').classList.remove('hidden');
+        }
+      });
+    } catch (e) {
+      console.warn("Firebase fallback mode:", e);
+    }
+
+    window.onload = function() {
+      if (!isFirebaseReady) {
+        const savedUser = localStorage.getItem('fitpulse_user');
+        if (savedUser) {
+          window.AppState.currentUser = JSON.parse(savedUser);
+          onUserLoggedIn(window.AppState.currentUser);
+        } else {
+          document.getElementById('auth-modal').classList.remove('hidden');
+        }
+      }
+    };
+
+    window.switchAuthTab = function(mode) {
+      window.AppState.authMode = mode;
+      const nameField = document.getElementById('name-field');
+      const submitBtn = document.getElementById('auth-submit-btn');
+      const tabLogin = document.getElementById('tab-login');
+      const tabRegister = document.getElementById('tab-register');
+
+      if (mode === 'register') {
+        nameField.classList.remove('hidden');
+        submitBtn.querySelector('span').textContent = 'Buat Akun Baru';
+        tabRegister.className = 'flex-1 py-2 text-center font-medium text-emerald-400 border-b-2 border-emerald-400 transition-all';
+        tabLogin.className = 'flex-1 py-2 text-center font-medium text-slate-400 border-b-2 border-transparent transition-all';
+      } else {
+        nameField.classList.add('hidden');
+        submitBtn.querySelector('span').textContent = 'Masuk';
+        tabLogin.className = 'flex-1 py-2 text-center font-medium text-emerald-400 border-b-2 border-emerald-400 transition-all';
+        tabRegister.className = 'flex-1 py-2 text-center font-medium text-slate-400 border-b-2 border-transparent transition-all';
+      }
+    };
+
+    window.handleAuthSubmit = async function(event) {
+      event.preventDefault();
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+      const name = document.getElementById('auth-name').value.trim() || email.split('@')[0];
+
+      if (isFirebaseReady && auth) {
+        try {
+          if (window.AppState.authMode === 'register') {
+            await createUserWithEmailAndPassword(auth, email, password);
+            window.showToast("Akun berhasil dibuat!");
+          } else {
+            await signInWithEmailAndPassword(auth, email, password);
+            window.showToast("Berhasil masuk!");
+          }
+        } catch (error) {
+          console.warn("Firebase Auth disabled or failed, switching to local session:", error.message);
+          window.showToast("Masuk menggunakan sesi lokal.");
+          // Local fallback if Firebase auth provider is disabled or fails
+          fallbackLocalLogin(email, name);
+        }
+      } else {
+        fallbackLocalLogin(email, name);
+      }
+    };
+
+    function fallbackLocalLogin(email, name) {
+      const cleanUid = 'usr_' + btoa(email.toLowerCase()).replace(/=/g, '');
+      const userObj = {
+        uid: cleanUid,
+        email: email,
+        displayName: name,
+        role: 'Pro Fitness'
+      };
+      window.AppState.currentUser = userObj;
+      localStorage.setItem('fitpulse_user', JSON.stringify(userObj));
+      onUserLoggedIn(userObj);
+    }
+
+    window.loginAsGuest = async function() {
+      if (isFirebaseReady && auth) {
+        try {
+          await signInAnonymously(auth);
+          window.showToast("Masuk sebagai Guest!");
+          return;
+        } catch (e) {
+          console.warn("Anonymous auth failed, falling back locally:", e);
+        }
+      }
+      const guestUser = {
+        uid: 'guest_user_demo',
+        email: 'guest@fitpulse.app',
+        displayName: 'Tamu Fitness',
+        role: 'Guest Member'
+      };
+      window.AppState.currentUser = guestUser;
+      localStorage.setItem('fitpulse_user', JSON.stringify(guestUser));
+      window.showToast("Masuk sebagai Guest!");
+      onUserLoggedIn(guestUser);
+    };
+
+    window.handleLogout = async function() {
+      unsubscribeFirestore.forEach(unsub => unsub && unsub());
+      unsubscribeFirestore = [];
+
+      if (isFirebaseReady && auth) {
+        try {
+          await signOut(auth);
+        } catch (e) {
+          console.warn("SignOut error:", e);
+        }
+      }
+
+      localStorage.removeItem('fitpulse_user');
+      window.AppState.currentUser = null;
+      window.AppState.workouts = [];
+      window.AppState.goals = [];
+      window.AppState.weights = [];
+
+      document.getElementById('app-container').classList.add('hidden');
+      document.getElementById('auth-modal').classList.remove('hidden');
+      window.showToast("Berhasil keluar.");
+    };
+
+    function onUserLoggedIn(user) {
+      document.getElementById('auth-modal').classList.add('hidden');
+      document.getElementById('app-container').classList.remove('hidden');
+
+      const nameEl = document.getElementById('desktop-user-name');
+      const roleEl = document.getElementById('desktop-user-role');
+      if (nameEl) nameEl.textContent = user.displayName || 'Member';
+      if (roleEl) roleEl.textContent = user.role || 'Pro Fitness';
+
+      loadUserData();
+      window.switchTab('dashboard');
+    }
+
+    function loadUserData() {
+      const uid = window.AppState.currentUser?.uid;
+      if (!uid) return;
+
+      unsubscribeFirestore.forEach(unsub => unsub && unsub());
+      unsubscribeFirestore = [];
+
+      if (isFirebaseReady && db) {
+        try {
+          const userDocRef = doc(db, 'artifacts', appId, 'users', uid);
+          const unsub = onSnapshot(userDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              window.AppState.workouts = data.workouts || [];
+              window.AppState.goals = data.goals || [];
+              window.AppState.weights = data.weights || [];
+            } else {
+              loadLocalFallback(uid);
+              saveDataToCloud();
+            }
+            refreshUI();
+          }, (err) => {
+            console.warn("Firestore listener restricted/permission error, falling back locally:", err.message);
+            loadLocalFallback(uid);
+          });
+
+          unsubscribeFirestore.push(unsub);
+          return;
+        } catch (e) {
+          console.warn("Cloud read failed:", e);
+        }
+      }
+
+      loadLocalFallback(uid);
+    }
+
+    function loadLocalFallback(uid) {
+      window.AppState.workouts = JSON.parse(localStorage.getItem(`fitpulse_workouts_${uid}`)) || [];
+      window.AppState.goals = JSON.parse(localStorage.getItem(`fitpulse_goals_${uid}`)) || [];
+      window.AppState.weights = JSON.parse(localStorage.getItem(`fitpulse_weights_${uid}`)) || [];
+      refreshUI();
+    }
+
+    async function saveData() {
+      const uid = window.AppState.currentUser?.uid;
+      if (!uid) return;
+
+      localStorage.setItem(`fitpulse_workouts_${uid}`, JSON.stringify(window.AppState.workouts));
+      localStorage.setItem(`fitpulse_goals_${uid}`, JSON.stringify(window.AppState.goals));
+      localStorage.setItem(`fitpulse_weights_${uid}`, JSON.stringify(window.AppState.weights));
+
+      await saveDataToCloud();
+    }
+
+    async function saveDataToCloud() {
+      const uid = window.AppState.currentUser?.uid;
+      if (!uid || !isFirebaseReady || !db) return;
+
+      try {
+        const userDocRef = doc(db, 'artifacts', appId, 'users', uid);
+        await setDoc(userDocRef, {
+          email: window.AppState.currentUser.email || 'guest@fitpulse.app',
+          displayName: window.AppState.currentUser.displayName || 'Member',
+          workouts: window.AppState.workouts,
+          goals: window.AppState.goals,
+          weights: window.AppState.weights,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      } catch (err) {
+        console.warn("Cloud Firestore save warning:", err.message);
+      }
+    }
+
+    function refreshUI() {
+      renderDashboard();
+      renderWorkoutLogs();
+      renderGoals();
+      renderWeightTracker();
+    }
+
+    function renderDashboard() {
+      const workouts = window.AppState.workouts;
+      const goals = window.AppState.goals;
+
+      const totalWorkouts = workouts.length;
+      const totalDuration = workouts.reduce((acc, curr) => acc + Number(curr.duration || 0), 0);
+      const totalCalories = workouts.reduce((acc, curr) => acc + Number(curr.calories || 0), 0);
+      const completedGoals = goals.filter(g => Number(g.current) >= Number(g.target)).length;
+
+      document.getElementById('stat-total-workouts').textContent = totalWorkouts;
+      document.getElementById('stat-total-duration').textContent = `${totalDuration}m`;
+      document.getElementById('stat-total-calories').textContent = totalCalories;
+      document.getElementById('stat-completed-goals').textContent = `${completedGoals}/${goals.length}`;
+
+      // Render Recent List
+      const recentContainer = document.getElementById('recent-workout-list');
+      if (workouts.length === 0) {
+        recentContainer.innerHTML = '<div class="text-center py-6 text-slate-500 text-sm">Belum ada catatan workout. Mulai catat latihanmu!</div>';
+      } else {
+        recentContainer.innerHTML = workouts.slice(0, 3).map(w => `
+          <div class="bg-slate-800/50 p-3.5 rounded-xl border border-slate-700/40 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center font-bold">
+                <i class="${getCategoryIcon(w.category)}"></i>
+              </div>
+              <div>
+                <div class="text-sm font-bold text-white">${w.title}</div>
+                <div class="text-xs text-slate-400">${w.date} • ${w.sets} Set x ${w.reps} Reps ${w.weight > 0 ? '(' + w.weight + 'kg)' : ''}</div>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full">${w.duration} m</span>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      initCharts();
+    }
+
+    function initCharts() {
+      const workouts = window.AppState.workouts;
+      
+      // Activity Chart
+      const ctxActivity = document.getElementById('chart-workout-activity');
+      if (ctxActivity) {
+        if (window.AppState.charts.activity) window.AppState.charts.activity.destroy();
+        
+        const labels = workouts.slice(-7).map(w => w.date);
+        const durations = workouts.slice(-7).map(w => w.duration);
+
+        window.AppState.charts.activity = new Chart(ctxActivity, {
+          type: 'line',
+          data: {
+            labels: labels.length ? labels : ['Hari Ini'],
+            datasets: [{
+              label: 'Durasi (Menit)',
+              data: durations.length ? durations : [0],
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              fill: true,
+              tension: 0.4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+              y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }
+            }
+          }
+        });
+      }
+
+      // Category Chart
+      const ctxCat = document.getElementById('chart-workout-category');
+      if (ctxCat) {
+        if (window.AppState.charts.category) window.AppState.charts.category.destroy();
+
+        const catCounts = { Strength: 0, Cardio: 0, Flexibility: 0, Other: 0 };
+        workouts.forEach(w => { if (catCounts[w.category] !== undefined) catCounts[w.category]++; });
+
+        window.AppState.charts.category = new Chart(ctxCat, {
+          type: 'doughnut',
+          data: {
+            labels: Object.keys(catCounts),
+            datasets: [{
+              data: Object.values(catCounts),
+              backgroundColor: ['#10b981', '#00f2fe', '#f59e0b', '#64748b'],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } }
+          }
+        });
+      }
+    }
+
+    window.renderWorkoutLogs = function() {
+      const container = document.getElementById('workout-logs-container');
+      const search = document.getElementById('workout-search')?.value.toLowerCase() || '';
+      const filterCat = document.getElementById('workout-filter-category')?.value || 'all';
+
+      let list = window.AppState.workouts.filter(w => {
+        const matchesSearch = w.title.toLowerCase().includes(search);
+        const matchesCat = filterCat === 'all' || w.category === filterCat;
+        return matchesSearch && matchesCat;
+      });
+
+      if (list.length === 0) {
+        container.innerHTML = '<div class="bg-slate-900 border border-slate-800 p-8 text-center text-slate-500 rounded-2xl">Tidak ada catatan latihan ditemukan.</div>';
+        return;
+      }
+
+      container.innerHTML = list.map(w => `
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-xl font-bold flex-shrink-0">
+              <i class="${getCategoryIcon(w.category)}"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h4 class="text-base font-bold text-white">${w.title}</h4>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">${w.category}</span>
+              </div>
+              <div class="text-xs text-slate-400 mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                <span><i class="fa-regular fa-calendar mr-1"></i>${w.date}</span>
+                <span><i class="fa-solid fa-layer-group mr-1"></i>${w.sets} Set x ${w.reps} Reps</span>
+                ${w.weight > 0 ? `<span><i class="fa-solid fa-weight-hanging mr-1"></i>${w.weight} kg</span>` : ''}
+                <span><i class="fa-solid fa-clock mr-1"></i>${w.duration}m</span>
+                <span><i class="fa-solid fa-fire mr-1 text-amber-400"></i>${w.calories} Kcal</span>
+              </div>
+              ${w.notes ? `<p class="text-xs text-slate-400 italic mt-2 bg-slate-800/40 p-2 rounded-lg border border-slate-700/30">"${w.notes}"</p>` : ''}
+            </div>
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 border-slate-800 pt-3 sm:pt-0">
+            <button onclick="window.deleteWorkout('${w.id}')" class="text-slate-400 hover:text-red-400 p-2 transition-colors" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>
+      `).join('');
+    };
+
+    window.openWorkoutModal = function() {
+      document.getElementById('workout-form').reset();
+      document.getElementById('workout-id').value = '';
+      document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('workout-modal').classList.remove('hidden');
+    };
+
+    window.closeWorkoutModal = function() {
+      document.getElementById('workout-modal').classList.add('hidden');
+    };
+
+    window.handleWorkoutSubmit = function(event) {
+      event.preventDefault();
+      const newWorkout = {
+        id: 'w_' + Date.now(),
+        title: document.getElementById('workout-title').value,
+        category: document.getElementById('workout-category').value,
+        date: document.getElementById('workout-date').value,
+        sets: Number(document.getElementById('workout-sets').value),
+        reps: Number(document.getElementById('workout-reps').value),
+        weight: Number(document.getElementById('workout-weight').value),
+        duration: Number(document.getElementById('workout-duration').value),
+        calories: Number(document.getElementById('workout-calories').value),
+        feeling: document.getElementById('workout-feeling').value,
+        notes: document.getElementById('workout-notes').value
+      };
+
+      window.AppState.workouts.unshift(newWorkout);
+      saveData();
+      refreshUI();
+      window.closeWorkoutModal();
+      window.showToast("Workout berhasil dicatat!");
+    };
+
+    window.deleteWorkout = function(id) {
+      window.AppState.workouts = window.AppState.workouts.filter(w => w.id !== id);
+      saveData();
+      refreshUI();
+      window.showToast("Catatan workout dihapus.");
+    };
+
+    function renderGoals() {
+      const container = document.getElementById('goals-container');
+      const goals = window.AppState.goals;
+
+      if (goals.length === 0) {
+        container.innerHTML = '<div class="col-span-full bg-slate-900 border border-slate-800 p-8 text-center text-slate-500 rounded-2xl">Belum ada target fitness. Buat target pertamamu!</div>';
+        return;
+      }
+
+      container.innerHTML = goals.map(g => {
+        const percent = Math.min(100, Math.round((g.current / g.target) * 100));
+        return `
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h4 class="text-base font-bold text-white">${g.title}</h4>
+                <p class="text-xs text-slate-400">Deadline: ${g.deadline}</p>
+              </div>
+              <button onclick="window.deleteGoal('${g.id}')" class="text-slate-500 hover:text-red-400 text-xs"><i class="fa-solid fa-trash"></i></button>
+            </div>
+
+            <div class="my-4">
+              <div class="flex justify-between text-xs font-semibold mb-1">
+                <span class="text-slate-400">Progres</span>
+                <span class="text-emerald-400">${g.current} / ${g.target} ${g.unit} (${percent}%)</span>
+              </div>
+              <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                <div class="h-full bg-emerald-500 transition-all duration-500" style="width: ${percent}%"></div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between border-t border-slate-800/80 pt-3">
+              <span class="text-xs text-slate-500">Update Cepat</span>
+              <div class="flex gap-1">
+                <button onclick="window.updateGoalProgress('${g.id}', -1)" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 text-white rounded-lg flex items-center justify-center text-xs font-bold">-</button>
+                <button onclick="window.updateGoalProgress('${g.id}', 1)" class="w-7 h-7 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded-lg flex items-center justify-center text-xs font-bold">+</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    window.openGoalModal = function() {
+      document.getElementById('goal-form').reset();
+      document.getElementById('goal-modal').classList.remove('hidden');
+    };
+
+    window.closeGoalModal = function() {
+      document.getElementById('goal-modal').classList.add('hidden');
+    };
+
+    window.handleGoalSubmit = function(event) {
+      event.preventDefault();
+      const newGoal = {
+        id: 'g_' + Date.now(),
+        title: document.getElementById('goal-title').value,
+        current: 0,
+        target: Number(document.getElementById('goal-target').value),
+        unit: document.getElementById('goal-unit').value,
+        deadline: document.getElementById('goal-deadline').value
+      };
+
+      window.AppState.goals.push(newGoal);
+      saveData();
+      refreshUI();
+      window.closeGoalModal();
+      window.showToast("Target baru berhasil dibuat!");
+    };
+
+    window.updateGoalProgress = function(id, delta) {
+      const goal = window.AppState.goals.find(g => g.id === id);
+      if (goal) {
+        goal.current = Math.max(0, goal.current + delta);
+        saveData();
+        refreshUI();
+      }
+    };
+
+    window.deleteGoal = function(id) {
+      window.AppState.goals = window.AppState.goals.filter(g => g.id !== id);
+      saveData();
+      refreshUI();
+      window.showToast("Target dihapus.");
+    };
+
+    function renderWeightTracker() {
+      const weights = window.AppState.weights;
+      const tbody = document.getElementById('weight-history-tbody');
+
+      if (tbody) {
+        if (weights.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-500">Belum ada catatan berat badan.</td></tr>';
+        } else {
+          tbody.innerHTML = weights.map(w => `
+            <tr class="border-b border-slate-800/50 hover:bg-slate-800/30">
+              <td class="p-3.5 font-medium text-white">${w.date}</td>
+              <td class="p-3.5 font-bold text-emerald-400">${w.value} kg</td>
+              <td class="p-3.5 text-slate-400">${w.notes || '-'}</td>
+              <td class="p-3.5 text-right">
+                <button onclick="window.deleteWeight('${w.id}')" class="text-slate-500 hover:text-red-400 text-xs"><i class="fa-solid fa-trash"></i></button>
+              </td>
+            </tr>
+          `).join('');
+        }
+      }
+
+      // Weight Chart
+      const ctxWeight = document.getElementById('chart-weight-history');
+      if (ctxWeight) {
+        if (window.AppState.charts.weight) window.AppState.charts.weight.destroy();
+
+        window.AppState.charts.weight = new Chart(ctxWeight, {
+          type: 'line',
+          data: {
+            labels: weights.map(w => w.date),
+            datasets: [{
+              label: 'Berat Badan (Kg)',
+              data: weights.map(w => w.value),
+              borderColor: '#00f2fe',
+              backgroundColor: 'rgba(0, 242, 254, 0.1)',
+              fill: true,
+              tension: 0.3
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+              y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }
+            }
+          }
+        });
+      }
+    }
+
+    window.openWeightModal = function() {
+      document.getElementById('weight-form').reset();
+      document.getElementById('weight-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('weight-modal').classList.remove('hidden');
+    };
+
+    window.closeWeightModal = function() {
+      document.getElementById('weight-modal').classList.add('hidden');
+    };
+
+    window.handleWeightSubmit = function(event) {
+      event.preventDefault();
+      const newWeight = {
+        id: 'w_' + Date.now(),
+        value: Number(document.getElementById('weight-value').value),
+        date: document.getElementById('weight-date').value,
+        notes: document.getElementById('weight-notes').value
+      };
+
+      window.AppState.weights.push(newWeight);
+      saveData();
+      refreshUI();
+      window.closeWeightModal();
+      window.showToast("Berat badan berhasil dicatat!");
+    };
+
+    window.deleteWeight = function(id) {
+      window.AppState.weights = window.AppState.weights.filter(w => w.id !== id);
+      saveData();
+      refreshUI();
+      window.showToast("Catatan dihapus.");
+    };
+
+    window.openProfileModal = function() {
+      if (!window.AppState.currentUser) return;
+      document.getElementById('profile-name-input').value = window.AppState.currentUser.displayName || '';
+      document.getElementById('profile-role-input').value = window.AppState.currentUser.role || '';
+      document.getElementById('profile-modal').classList.remove('hidden');
+    };
+
+    window.closeProfileModal = function() {
+      document.getElementById('profile-modal').classList.add('hidden');
+    };
+
+    window.handleProfileSubmit = function(event) {
+      event.preventDefault();
+      const name = document.getElementById('profile-name-input').value.trim();
+      const role = document.getElementById('profile-role-input').value.trim();
+
+      if (name) {
+        window.AppState.currentUser.displayName = name;
+        window.AppState.currentUser.role = role || 'Pro Fitness';
+        localStorage.setItem('fitpulse_user', JSON.stringify(window.AppState.currentUser));
+
+        document.getElementById('desktop-user-name').textContent = name;
+        document.getElementById('desktop-user-role').textContent = role || 'Pro Fitness';
+
+        window.closeProfileModal();
+        window.showToast("Profil diperbarui!");
+      }
+    };
+
+    // Helper functions
+    function getCategoryIcon(cat) {
+      switch (cat) {
+        case 'Strength': return 'fa-solid fa-dumbbell';
+        case 'Cardio': return 'fa-solid fa-person-running';
+        case 'Flexibility': return 'fa-solid fa-spa';
+        default: return 'fa-solid fa-bolt';
+      }
+    }
+
+    window.switchTab = function(tabName) {
+      ['dashboard', 'workouts', 'goals', 'weight', 'backup'].forEach(t => {
+        const sec = document.getElementById(`section-${t}`);
+        const nav = document.getElementById(`nav-${t}`);
+        if (sec) sec.classList.add('hidden');
+        if (nav) nav.className = 'w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-400 hover:text-white hover:bg-slate-800/60';
+      });
+
+      const activeSec = document.getElementById(`section-${tabName}`);
+      const activeNav = document.getElementById(`nav-${tabName}`);
+      if (activeSec) activeSec.classList.remove('hidden');
+      if (activeNav) activeNav.className = 'w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-emerald-400 bg-emerald-500/10 border border-emerald-500/20';
+    };
+
+    // Backup & Restore / JSON Import-Export functions
+    window.exportBackupJSON = function() {
+      const exportData = {
+        app: "FitPulse",
+        version: "1.0",
+        exportDate: new Date().toISOString(),
+        user: window.AppState.currentUser,
+        workouts: window.AppState.workouts || [],
+        goals: window.AppState.goals || [],
+        weights: window.AppState.weights || []
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      const filename = `fitpulse_backup_${new Date().toISOString().split('T')[0]}.json`;
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", filename);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+
+      window.showToast("Backup JSON berhasil diunduh!");
+    };
+
+    window.importBackupJSON = function(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+
+          if (!imported || (!imported.workouts && !imported.goals && !imported.weights)) {
+            window.showToast("Format file JSON tidak valid.");
+            return;
+          }
+
+          if (imported.workouts && Array.isArray(imported.workouts)) {
+            window.AppState.workouts = imported.workouts;
+          }
+          if (imported.goals && Array.isArray(imported.goals)) {
+            window.AppState.goals = imported.goals;
+          }
+          if (imported.weights && Array.isArray(imported.weights)) {
+            window.AppState.weights = imported.weights;
+          }
+          if (imported.user && imported.user.displayName) {
+            window.AppState.currentUser.displayName = imported.user.displayName;
+            if (imported.user.role) window.AppState.currentUser.role = imported.user.role;
+            document.getElementById('desktop-user-name').textContent = imported.user.displayName;
+            document.getElementById('desktop-user-role').textContent = imported.user.role || 'Pro Fitness';
+          }
+
+          await saveData();
+          refreshUI();
+          window.showToast("Data dari file JSON berhasil dipulihkan!");
+        } catch (err) {
+          console.error("Gagal impor JSON:", err);
+          window.showToast("Terjadi kesalahan saat membaca file JSON.");
+        } finally {
+          event.target.value = '';
+        }
+      };
+
+      reader.readAsText(file);
+    };
+
+    window.showToast = function(msg) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'bg-slate-900 border border-emerald-500/40 text-emerald-400 px-4 py-3 rounded-xl shadow-xl text-sm flex items-center gap-2 pointer-events-auto transition-all duration-300 transform translate-y-2';
+      toast.innerHTML = `<i class="fa-solid fa-circle-check"></i> <span>${msg}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', '-translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    };
+  </script>
+</body>
+</html>
